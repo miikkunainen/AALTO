@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A’labora – pajojen infotaulu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#EFEFEF;--pan:#FFFFFF;--ink:#000;--mute:#5A5A5A;--line:#DADADA;--yel:#FFE01B;--abl:#0AA0F5;--grn:#17784A;--grn-s:#DDF1E5;--red:#C4321E}
+html,body{height:100%;background:#000;overflow:hidden}
+body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;background:var(--bg);transform-origin:center center;display:grid;grid-template-rows:96px 1fr 56px}
+
+/* yläpalkki */
+.top{background:#000;color:#fff;display:grid;grid-template-columns:auto 1fr auto;align-items:center;padding:0 56px;gap:40px}
+.mark{display:flex;align-items:flex-end;gap:18px}
+.mark .a{font-weight:800;font-size:77px;line-height:.78;letter-spacing:-.05em}
+.mark .a span{color:var(--yel)}
+.mark .t{font-weight:700;font-size:22px;line-height:1.1;letter-spacing:-.02em}
+.mark .t small{display:block;font-weight:500;font-size:16px;opacity:.7;letter-spacing:0;margin-top:3px}
+.status{justify-self:center;display:flex;align-items:center;gap:13px;font-weight:800;font-size:27px;letter-spacing:-.02em}
+.status .dot{width:21px;height:21px;border-radius:50%;background:#2EBD6B}
+.status.closed .dot{background:var(--red)}
+.status small{font-weight:500;font-size:18px;opacity:.8;letter-spacing:0}
+.clock{text-align:right;line-height:1}
+.clock b{display:block;font-weight:800;font-size:58px;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.clock span{font-size:17px;font-weight:500;opacity:.8}
+
+/* runko */
+.body{display:grid;grid-template-columns:1fr 520px;gap:40px;padding:40px 56px;min-height:0}
+.col{display:grid;gap:32px;min-height:0}
+.left{grid-template-rows:auto 1fr}
+.right{grid-template-rows:auto auto 1fr}
+.pan{background:var(--pan);padding:28px 32px;min-height:0;overflow:hidden}
+.ph{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:20px}
+.ph h2{font-size:24px;font-weight:800;letter-spacing:-.03em}
+.ph .s{font-size:15px;color:var(--mute);font-weight:500}
+
+/* aikajana */
+.legend{display:flex;gap:22px;font-size:14px;font-weight:600;color:#222}
+.legend i{display:inline-block;width:16px;height:16px;vertical-align:-3px;margin-right:6px}
+.tl{position:relative;display:grid;grid-template-columns:200px 1fr}
+.hours{grid-column:2;position:relative;height:24px;font-size:14px;color:var(--mute);font-weight:600}
+.hours span{position:absolute;top:0;transform:translateX(-50%)}
+.rowlab{height:43px;display:flex;flex-direction:column;justify-content:center;font-weight:700;font-size:17px;line-height:1.15;border-top:1px solid var(--line);padding-right:8px}
+.rowlab small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px;font-weight:500;font-size:13px;color:var(--red)}
+.track{position:relative;height:43px;border-top:1px solid var(--line);background:#fff}
+.closedz{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,#E9E9E9 0 5px,#F6F6F6 5px 10px)}
+.blk{position:absolute;top:5px;bottom:5px;padding:0 7px;display:flex;align-items:center;font-size:13px;font-weight:700;overflow:hidden;line-height:1.1}
+.blk.kurssi{background:#000;color:#fff}
+.blk.varaus{background:var(--abl);color:#000}
+.blk.paivystys{background:var(--yel);color:#000}
+.blk.huolto{background:repeating-linear-gradient(135deg,var(--red) 0 6px,#E2594A 6px 13px);color:#fff}
+.blk.kone{background:#fff;border:3px solid var(--abl);color:#000}
+.blk.past{opacity:.38}
+.grid{position:absolute;top:24px;bottom:0;width:1px;background:rgba(0,0,0,.07)}
+.now{position:absolute;top:18px;bottom:-5px;width:3px;margin-left:-2px;background:var(--red);z-index:3}
+.now span{position:absolute;top:-19px;left:50%;transform:translateX(-50%);background:var(--red);color:#fff;font-weight:800;font-size:14px;padding:2px 6px;white-space:nowrap}
+
+/* alarivi */
+.lower{display:grid;grid-template-columns:1fr 1fr;gap:32px;min-height:0}
+.free{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--bg)}
+.fr{background:#fff;padding:8px 11px;display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px;font-weight:600;line-height:1.15}
+.fr b{font-weight:800;font-size:16px;white-space:nowrap}
+.fr.ok{background:var(--grn-s)}.fr.ok b{color:var(--grn)}
+.fr.no b{color:var(--mute);font-weight:600}
+.work .w{display:grid;grid-template-columns:1fr auto;gap:3px 14px;padding:14px 0;border-top:1px solid var(--line)}
+.work .w:first-of-type{border-top:0;padding-top:0}
+.work .w b{font-size:17px;font-weight:700;letter-spacing:-.01em}
+.work .w .lv{font-size:13px;font-weight:700;background:#000;color:#fff;padding:3px 7px;align-self:start}
+.work .w .d{font-size:14px;color:var(--mute);font-weight:500}
+.prog{grid-column:1/-1;display:flex;gap:3px;margin-top:5px}
+.prog i{flex:1;height:6px;background:var(--line)}
+.prog i.on{background:#000}.prog i.cur{background:var(--yel)}
+
+/* turvallisuus */
+.safe{display:grid;grid-template-columns:1fr 1fr;gap:16px;background:var(--bg);padding:0}
+.sc{padding:13px 18px;display:flex;flex-direction:column;justify-content:space-between;min-height:134px}
+.sc.k{background:#000;color:#fff}.sc.y{background:var(--yel)}
+.sc .lb{font-size:15px;font-weight:700}
+.sc b{font-size:67px;font-weight:800;letter-spacing:-.05em;line-height:.85;font-variant-numeric:tabular-nums}
+.sc .u{font-size:17px;font-weight:600;line-height:1.2}
+.sc .r{font-size:13px;font-weight:500;opacity:.75;margin-top:5px}
+
+/* paikalla */
+.who{display:grid;grid-template-columns:auto 1fr;gap:5px 16px;align-items:end}
+.big{font-size:54px;font-weight:800;letter-spacing:-.05em;line-height:.8;grid-row:span 2}
+.bigl{font-size:17px;font-weight:700;line-height:1.15}
+.bigs{font-size:14px;color:var(--mute);font-weight:500}
+.pres{margin-top:16px;display:grid;gap:6px}
+.pr{display:grid;grid-template-columns:168px 1fr 56px 18px;align-items:center;gap:10px;font-size:13px;font-weight:600}
+.pr .bar{height:13px;background:var(--line);position:relative}
+.pr .bar i{position:absolute;left:0;top:0;bottom:0;background:#000}
+.pr .n{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+.pr .m{width:14px;height:14px;border-radius:50%;border:3px solid var(--grn)}
+.pr .m.on{background:var(--grn)}
+
+/* tiedotteet */
+.news .n{display:grid;grid-template-columns:96px 1fr;gap:14px;padding:10px 0;border-top:1px solid var(--line);align-items:start}
+.news .n:first-of-type{border-top:0;padding-top:0}
+.news .when{font-weight:800;font-size:15px;line-height:1.1}
+.news .when small{display:block;font-weight:600;font-size:12px;color:var(--mute);margin-top:3px}
+.news .what{font-size:13px;line-height:1.25;font-weight:500}
+.news .what b{display:block;font-weight:700;font-size:15px}
+.tagx{display:inline-block;font-size:11px;font-weight:700;padding:2px 6px;margin-bottom:3px}
+.tagx.h{background:var(--red);color:#fff}.tagx.t{background:var(--abl)}.tagx.s{background:var(--yel)}.tagx.k{background:#000;color:#fff}
+
+/* alapalkki */
+.foot{background:var(--yel);display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:28px;padding:0 56px;font-size:18px}
+.foot .k{font-weight:800}
+.foot .msg{font-weight:600;transition:opacity .5s}
+.foot .em{background:#000;color:#fff;font-weight:800;padding:6px 13px;white-space:nowrap}
+.demo{position:absolute;left:50%;transform:translateX(-50%);top:72px;font-size:11px;color:#9a9a9a}
+/* synkronointi ja hätätila */
+.livedot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#2EBD6B;margin-right:6px;vertical-align:1px}
+#stage.emmode{display:block;background:var(--red)}
+.emv{position:absolute;inset:0;display:flex;flex-direction:column;color:#fff;background:var(--red)}
+.emvt{display:flex;justify-content:space-between;background:#000;padding:22px 56px;font-weight:800;font-size:34px;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+.emvb{flex:1;padding:56px 56px 40px;display:flex;flex-direction:column}
+.emvk{font-size:34px;font-weight:700;opacity:.9}
+.emv h1{font-size:150px;font-weight:800;letter-spacing:-.05em;line-height:.95;margin:10px 0 24px}
+.emvp{font-size:44px;font-weight:700;max-width:28ch;line-height:1.15}
+.emvs{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:auto}
+.emvs div{background:rgba(0,0,0,.25);padding:20px 24px;font-size:24px;font-weight:600}
+.emvs div.ok{background:#000}
+.emvs b{display:block;font-size:56px;font-weight:800;letter-spacing:-.03em;line-height:1;margin-bottom:6px}
+.emvf{margin-top:24px;font-size:24px;font-weight:600;opacity:.9}
+@media (prefers-reduced-motion:reduce){.foot .msg{transition:none}}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+(function(){
+'use strict';
+
+/* ---------- aika ---------- */
+function pad(n){return (n<10?'0':'')+n}
+var params={};location.search.replace(/^\?/,'').split('&').forEach(function(kv){if(!kv)return;var p=kv.split('=');params[decodeURIComponent(p[0])]=decodeURIComponent(p[1]||'')});
+function now(){
+  var d=new Date();
+  if(params.aika&&/^\d{1,2}:\d{2}$/.test(params.aika)){var t=params.aika.split(':');d.setHours(+t[0],+t[1],0,0)}
+  return d;
+}
+function day0(d){var x=new Date(d);x.setHours(12,0,0,0);return x}
+function addDays(d,n){var x=day0(d);x.setDate(x.getDate()+n);return x}
+function iso(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function daysBetween(a,b){return Math.round((day0(b)-day0(a))/86400000)}
+function isoWeek(d){var t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));var dn=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-dn);var y=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-y)/86400000+1)/7)}
+var WDL=['sunnuntai','maanantai','tiistai','keskiviikko','torstai','perjantai','lauantai'];
+var WDS=['su','ma','ti','ke','to','pe','la'];
+var MON=['tammikuuta','helmikuuta','maaliskuuta','huhtikuuta','toukokuuta','kesäkuuta','heinäkuuta','elokuuta','syyskuuta','lokakuuta','marraskuuta','joulukuuta'];
+function mm(s){var p=s.split(':');return (+p[0])*60+(+p[1])}
+function hm(m){return Math.floor(m/60)+'.'+pad(m%60)}
+function nextWorkday(d,n){var x=day0(d),k=0;while(k<n){x.setDate(x.getDate()+1);if(x.getDay()>0&&x.getDay()<6)k++}return x}
+function dayLabel(d,ref){var diff=daysBetween(ref,d);if(diff===0)return 'Tänään';if(diff===1)return 'Huomenna';return WDL[d.getDay()].charAt(0).toUpperCase()+WDL[d.getDay()].slice(1)}
+
+/* ---------- Arts infran palveluajat, Väre G-kerros ---------- */
+var OPEN={1:[[mm('13:15'),mm('17:00')]],2:[[mm('09:15'),mm('12:00')],[mm('13:15'),mm('20:00')]],3:[[mm('09:15'),mm('12:00')],[mm('13:15'),mm('20:00')]],4:[[mm('09:15'),mm('12:00')],[mm('13:15'),mm('20:00')]],5:[[mm('09:15'),mm('12:00')],[mm('13:15'),mm('16:00')]]};
+var AX0=mm('08:00'),AX1=mm('20:00');
+
+function openState(d){
+  var sl=OPEN[d.getDay()],m=d.getHours()*60+d.getMinutes();
+  if(!sl)return {open:false,txt:'Suljettu',sub:'Avautuu maanantaina klo 13.15'};
+  for(var i=0;i<sl.length;i++){if(m>=sl[i][0]&&m<sl[i][1])return {open:true,txt:'Pajat auki',sub:'klo '+hm(sl[i][1])+' asti'}}
+  if(d.getDay()===1&&m<sl[0][0])return {open:false,txt:'Huoltoaamu',sub:'Pajat avautuvat klo 13.15'};
+  for(var j=0;j<sl.length;j++){if(m<sl[j][0])return {open:false,txt:j>0?'Lounastauko':'Suljettu',sub:'Avautuu klo '+hm(sl[j][0])}}
+  var nd=nextWorkday(d,1);
+  return {open:false,txt:'Suljettu',sub:'Avautuu '+WDL[nd.getDay()]+'na klo '+hm(OPEN[nd.getDay()][0][0])};
+}
+
+/* ---------- demodata (anonymisoitu) ---------- */
+var PAJAT=[
+  {id:'puu',name:'Puupaja',cap:16},
+  {id:'nc',name:'Puu NC-työpaja',cap:4},
+  {id:'laser',name:'Laserleikkaus & muovi',cap:12},
+  {id:'ker',name:'Keramiikkapaja',cap:14,note:'Uuni polttaa, ei avata'},
+  {id:'maal',name:'Maalaamo',cap:4},
+  {id:'met',name:'Metallipaja',cap:14},
+  {id:'3d',name:'3D-tulostus',cap:6}
+];
+function daySchedule(d){
+  var w=d.getDay(),S=[];
+  function add(p,a,b,type,label,people,staff){S.push({p:p,a:mm(a),b:mm(b),type:type,label:label,people:people||0,staff:!!staff})}
+  if(w===0||w===6)return S;
+  if(w===1){
+    add('puu','08:00','12:00','huolto','Huoltoaamu',0,1);add('nc','08:00','12:00','huolto','Huoltoaamu',0,1);add('laser','08:00','12:00','huolto','Huoltoaamu',0,1);
+    add('ker','08:00','12:00','huolto','Huoltoaamu',0,1);add('maal','08:00','12:00','huolto','Huoltoaamu',0,1);add('met','08:00','12:00','huolto','Huoltoaamu',0,1);add('3d','08:00','12:00','huolto','Huoltoaamu',0,1);
+  } else {
+    add('puu','09:15','12:00','paivystys','Hoitoapupäivystys',5,1);
+    add('nc','09:15','11:00','varaus','Maisteriprojekti',1,0);
+    add('laser','09:15','12:00','varaus','Opiskelijatyöt',2,1);
+    add('ker','09:15','12:00','paivystys','Hoitoapupäivystys',4,1);
+    add('maal','09:15','11:00','huolto','Suodatinhuolto',0,1);
+    add('met','09:15','12:00','paivystys','Avoin työskentely',3,1);
+    add('3d','09:15','12:00','kone','Tulostusjono: 2 työtä',1,0);
+  }
+  add('puu','13:15','16:00','kurssi','Muotoilun perusteet: rakenne',14,1);
+  add('puu','16:00','18:00','varaus','Opiskelijatyöt',3,1);
+  add('nc','13:15','15:30','varaus','Jyrsintä',1,1);
+  add('laser','13:15','14:45','kurssi','Digitaalinen valmistus',10,1);
+  add('laser','17:00','19:00','varaus','Varattu',2,0);
+  add('ker','13:15','15:00','kurssi','Keramiikan menetelmät',12,1);
+  add('maal','13:15','16:00','varaus','Pintakäsittely',2,1);
+  add('met','13:15','17:00','kurssi','Metallin perusteet',12,1);
+  add('3d','13:15','19:30','kone','Tulostusjono: 4 työtä',1,0);
+  /* poista palveluaikojen ulkopuoliset */
+  var sl=OPEN[w]||[];
+  return S.filter(function(x){if(x.type==='huolto'||x.type==='kone')return true;for(var i=0;i<sl.length;i++){if(x.a<sl[i][1]&&x.b>sl[i][0])return true}return false});
+}
+var WORK=[
+  {t:'Jakkara, koivuvaneri',ph:'Kokoaminen ja liimaus',p:'Puupaja',n:3,of:4,lv:'Kandi'},
+  {t:'Valaisinsarja, akryyli ja alumiini',ph:'Laserleikkaus',p:'Laserleikkaus & muovi',n:1,of:3,lv:'Maisteri'},
+  {t:'Biokomposiittilevyjen polttotestit',ph:'Polttotestit uunissa',p:'Keramiikkapaja',n:2,of:3,lv:'Tohtori'},
+  {t:'Puulusikka ja leikkuulauta',ph:'Aihion sahaus',p:'Puupaja',n:1,of:2,lv:'Kandi'}
+];
+var SAFETY=[
+  'Laseriin ei koskaan PVC:tä, vinyyliä tai polykarbonaattia. Epävarma materiaali: kysy työpajamestarilta.',
+  'Epoksi herkistää: nitriilikäsineet, suojalasit ja kohdepoisto aina.',
+  'Ilmoita jokainen läheltä piti -tilanne. Jokainen ilmoitus tekee pajasta turvallisemman.',
+  'Pitkät hiukset kiinni ja korut pois pyörivien terien ääressä.',
+  'Hätätilanteessa: soita 112, sitten työpajamestari. Ensiapukaappi jokaisen pajan ovella.'
+];
+var msgIx=0;
+
+/* ---------- laskenta ---------- */
+function activeAt(S,p,m){return S.filter(function(x){return x.p===p&&m>=x.a&&m<x.b})}
+function occupied(x){return x.type==='kurssi'||x.type==='huolto'||x.type==='varaus'}
+function nextFree(S,p,d,m){
+  var sl=OPEN[d.getDay()]||[];
+  for(var i=0;i<sl.length;i++){
+    var t=Math.max(sl[i][0],m);
+    while(t+45<=sl[i][1]){
+      var busy=S.filter(function(x){return x.p===p&&occupied(x)&&x.a<t+45&&x.b>t});
+      if(!busy.length){return t}
+      var e=0;busy.forEach(function(x){if(x.b>e)e=x.b});t=e;
+    }
+  }
+  return null;
+}
+
+/* ---------- piirto ---------- */
+function x(m){return ((m-AX0)/(AX1-AX0)*100).toFixed(3)+'%'}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+/* ---------- synkronointi A’laboran kanssa (sama selain, sama osoite) ---------- */
+var PMAP={'Puupaja':'puu','Puu NC-työpaja':'nc','Laserleikkaus & muovityöpaja':'laser','Keramiikkapaja':'ker','Maalaamo':'maal','Metallipaja':'met','3D-tulostus':'3d'};
+var SHORT={'Laserleikkaus & muovityöpaja':'Laserleikkaus & muovi'};function sn(n){return SHORT[n]||n}
+var ASTEL={kandi:'Kandi',maisteri:'Maisteri',tohtori:'Tohtori'};
+function ls(k){try{var r=localStorage.getItem(k);return r?JSON.parse(r):null}catch(e){return null}}
+function pIso(s){var p=s.split(' ')[0].split('-');return new Date(+p[0],+p[1]-1,+p[2],12)}
+var DEF_ACC=143,DEF_NEAR=9;
+function live(d){
+  var db=ls('alabora_demo_v3');
+  var L={db:!!db,down:{},work:null,acc:addDays(d,-DEF_ACC),near:addDays(d,-DEF_NEAR),news:[]};
+  if(!db)return L;
+  db.machines.forEach(function(mc){var id=PMAP[mc.paja];if(!id)return;var t=null;
+    if(mc.status==='vika')t=mc.name+' pois käytöstä';else if(mc.use-mc.last>=mc.interval)t=mc.name+': huolto erääntynyt';
+    if(t)(L.down[id]=L.down[id]||[]).push(t)});
+  var near=null,acc=null;
+  db.incidents.forEach(function(i){var dt=pIso(i.at);if(i.type==='Läheltä piti'&&(!near||dt>near))near=dt;if((i.type==='Onnettomuus'||i.type==='Hätätilanne')&&(!acc||dt>acc))acc=dt;
+    if(i.status==='avoin'&&(i.type==='Vika'||i.type==='Häiriö')){var mc=null;db.machines.forEach(function(x){if(x.id===i.machine)mc=x});L.news.push([dt,'','h',i.type,(mc?mc.name:'Yleinen')+(mc?', '+sn(mc.paja):''),''])}});
+  if(near)L.near=near;if(acc)L.acc=acc;
+  var today0=iso(d);
+  db.instructions.forEach(function(i){if(i.state!=='luonnos'&&i.approvedAt&&daysBetween(pIso(i.approvedAt),d)<=7)L.news.push([pIso(i.approvedAt),'','s','Ohje päivitetty',i.title,'Versio '+i.v+'. Lue ennen käyttöä.'])});
+  L.work=[];
+  db.cards.forEach(function(c){var cur=null,ix=0;for(var i=0;i<c.phases.length;i++){if(c.phases[i].status==='kesken'){cur=c.phases[i];ix=i;break}}
+    if(!cur)for(var j=0;j<c.phases.length;j++){if(c.phases[j].status==='odottaa'){cur=c.phases[j];ix=j;break}}
+    if(!cur)return;var pj='Paja';c.phases.forEach(function(p){if(p.machine){db.machines.forEach(function(x){if(x.id===p.machine&&pj==='Paja')pj=x.paja})}});
+    var st=null;db.users.forEach(function(u){if(u.id===c.student)st=u});
+    L.work.push({t:c.title,ph:cur.name,p:sn(pj),n:ix+1,of:c.phases.length,lv:st?ASTEL[st.aste]:''})});
+  return L;
+}
+var EMPUB={tuli:['Tulipalo','Poistu rakennuksesta lähintä reittiä. Älä käytä hissiä.'],vuoto:['Vaaratilanne','Älä mene tilaan. Pidä ovet kiinni.'],atex:['Vaaratilanne','Älä mene tilaan. Ei tulta eikä kipinöitä.']};
+function emView(e,d){
+  var pub=EMPUB[e.type]||['Ensiaputilanne','Pidä käytävä vapaana. Ohjaa ensihoito perille.'];
+  var s2=Math.max(0,Math.floor((Date.now()-e.t0)/1000));
+  var h='<div class="emv"><div class="emvt"><span>HÄTÄTILANNE</span><span>'+pad(Math.floor(s2/60))+':'+pad(s2%60)+'</span></div><div class="emvb">';
+  h+='<div class="emvk">'+(e.paja?esc(e.paja):'Paikkaa selvitetään')+'</div><h1>'+pub[0]+'</h1><p class="emvp">'+pub[1]+'</p>';
+  h+='<div class="emvs"><div class="'+(e.called?'ok':'')+'"><b>'+(e.called?'✓':'…')+'</b>112 '+(e.called?'hälytetty':'hälytetään')+'</div><div class="'+(e.helpers?'ok':'')+'"><b>'+(e.step>=4?e.acked+'/'+e.helpers:'…')+'</b>auttajaa kuitannut</div><div><b>Väre</b>Otaniementie 14</div></div>';
+  h+='<p class="emvf">Jos et ole osallisena, älä mene paikalle. Hätätilanteessa soita 112.</p></div></div>';
+  return h;
+}
+function render(){
+  var d=now(),m=d.getHours()*60+d.getMinutes(),st=openState(d);
+  var weekend=d.getDay()===0||d.getDay()===6;
+  var schedDay=weekend?nextWorkday(d,1):d;
+  var S=daySchedule(schedDay),isToday=!weekend;
+  var h='';
+
+  /* yläpalkki */
+  h+='<header class="top"><div class="mark"><div class="a">A<span>’</span></div><div class="t">Arts-pajat<small>Väre, G-kerros</small></div></div>';
+  h+='<div class="status'+(st.open?'':' closed')+'"><span class="dot"></span>'+st.txt+'<small>'+st.sub+'</small></div>';
+  h+='<div class="clock"><b>'+d.getHours()+'.'+pad(d.getMinutes())+'</b><span>'+WDL[d.getDay()].charAt(0).toUpperCase()+WDL[d.getDay()].slice(1)+' '+d.getDate()+'. '+MON[d.getMonth()]+' · viikko '+isoWeek(d)+'</span></div></header>';
+
+  h+='<div class="body"><div class="col left">';
+
+  /* aikajana */
+  h+='<section class="pan"><div class="ph"><h2>'+(isToday?'Tänään pajoilla':dayLabel(schedDay,d)+' pajoilla')+'</h2><div class="legend"><span><i style="background:#000"></i>Kurssi</span><span><i style="background:var(--abl)"></i>Varattu</span><span><i style="background:var(--yel)"></i>Päivystys, kaikille avoin</span><span><i style="background:#fff;border:3px solid var(--abl)"></i>Kone käy</span><span><i style="background:var(--red)"></i>Huolto</span></div></div>';
+  h+='<div class="tl"><div></div><div class="hours">';
+  for(var t=AX0;t<=AX1;t+=60){h+='<span style="left:'+x(t)+'">'+(t/60)+'</span>'}
+  h+='</div>';
+  var sl=OPEN[schedDay.getDay()]||[];
+  var closed=[];var c0=AX0;sl.forEach(function(s){if(s[0]>c0)closed.push([c0,s[0]]);c0=s[1]});if(c0<AX1)closed.push([c0,AX1]);
+  var L=live(d);
+  PAJAT.forEach(function(p){p.down=L.down[p.id]?L.down[p.id].join(', '):''});
+  PAJAT.forEach(function(p){
+    h+='<div class="rowlab">'+esc(p.name)+(p.down?'<small>'+esc(p.down)+'</small>':'')+(p.note?'<small style="color:#0069B4">'+esc(p.note)+'</small>':'')+'</div><div class="track">';
+    closed.forEach(function(c){h+='<div class="closedz" style="left:'+x(c[0])+';width:calc('+x(c[1])+' - '+x(c[0])+')"></div>'});
+    var rows=S.filter(function(s){return s.p===p.id});
+    var hasKone=rows.some(function(r){return r.type==='kone'})&&rows.some(function(r){return r.type!=='kone'});
+    rows.forEach(function(s){
+      var past=isToday&&s.b<=m;
+      var style='left:'+x(s.a)+';width:calc('+x(s.b)+' - '+x(s.a)+')';
+      if(hasKone){style+=s.type==='kone'?';top:26px;bottom:4px;font-size:11px':';top:4px;bottom:22px;font-size:12px'}
+      h+='<div class="blk '+s.type+(past?' past':'')+'" style="'+style+'">'+esc(s.label)+'</div>';
+    });
+    h+='</div>';
+  });
+  if(isToday&&m>=AX0&&m<=AX1)h+='<div class="now" style="left:calc(200px + (100% - 200px) * '+((m-AX0)/(AX1-AX0)).toFixed(4)+')"><span>nyt '+hm(m)+'</span></div>';
+  h+='</div></section>';
+
+  /* alarivi */
+  h+='<div class="lower"><section class="pan"><div class="ph"><h2>Vapaata tilaa</h2><span class="s">vähintään 45 min</span></div><div class="free">';
+  PAJAT.forEach(function(p){
+    var from=isToday?m:0,f=nextFree(S,p.id,schedDay,from);
+    var cls='',txt;
+    if(f===null){cls='no';txt=isToday?'Ei tänään':'Ei vapaata'}
+    else if(isToday&&st.open&&f<=m){cls='ok';txt='Vapaa nyt'}
+    else txt=(isToday?'':WDS[schedDay.getDay()]+' ')+'klo '+hm(f);
+    h+='<div class="fr '+cls+'"><span>'+esc(p.name)+'</span><b>'+txt+'</b></div>';
+  });
+  h+='<div class="fr" style="font-size:13px;color:var(--mute);font-weight:500">Varaa aika Asiosta tai kysy työpajamestarilta</div></div></section>';
+  h+='<section class="pan work"><div class="ph"><h2>Työn alla</h2><span class="s">anonymisoitu</span></div>';
+  (L.work||WORK).slice(0,3).forEach(function(w){
+    h+='<div class="w"><b>'+esc(w.t)+'</b><span class="lv">'+w.lv+'</span><span class="d">'+esc(w.ph)+' · '+esc(w.p)+' · vaihe '+w.n+'/'+w.of+'</span><span></span><div class="prog">';
+    for(var i=1;i<=w.of;i++)h+='<i class="'+(i<w.n?'on':i===w.n?'cur':'')+'"></i>';
+    h+='</div></div>';
+  });
+  h+='</section></div></div>';
+
+  /* oikea sarake */
+  var lastAcc=L.acc,lastNear=L.near;
+  h+='<div class="col right"><section class="pan safe"><div class="sc k"><span class="lb">Ilman tapaturmaa</span><b>'+daysBetween(lastAcc,d)+'</b><div><div class="u">päivää</div><div class="r">Ennätys 212 päivää</div></div></div>';
+  h+='<div class="sc y"><span class="lb">Viimeisin läheltä piti</span><b>'+daysBetween(lastNear,d)+'</b><div><div class="u">päivää sitten</div><div class="r">Ilmoitettu ja käsitelty. Kiitos ilmoittajalle.</div></div></div></section>';
+
+  /* paikalla */
+  var tot=0,per={},staff={};
+  PAJAT.forEach(function(p){per[p.id]=0;staff[p.id]=false});
+  if(isToday&&st.open){S.forEach(function(s){if(m>=s.a&&m<s.b){per[s.p]+=s.people;if(s.staff)staff[s.p]=true}});PAJAT.forEach(function(p){per[p.id]=Math.min(per[p.id],p.cap);tot+=per[p.id]})}
+  h+='<section class="pan"><div class="ph"><h2>Paikalla nyt</h2><span class="s">● työpajamestari paikalla</span></div><div class="who"><div class="big">'+tot+'</div><div class="bigl">'+(st.open?'ihmistä pajoissa':'Pajat ovat kiinni')+'</div><div class="bigs">Lukumäärät, ei nimiä</div></div><div class="pres">';
+  PAJAT.forEach(function(p){h+='<div class="pr"><span>'+esc(p.name)+'</span><span class="bar"><i style="width:'+Math.round(per[p.id]/p.cap*100)+'%"></i></span><span class="n">'+per[p.id]+'/'+p.cap+'</span><span class="m'+(staff[p.id]?' on':'')+'"></span></div>'});
+  h+='</div></section>';
+
+  /* tiedotteet */
+  var n1=nextWorkday(d,1),n2=nextWorkday(d,2),nm=addDays(d,(8-d.getDay())%7||7);
+  var news=[
+    [n1,'8.00–10.00','h','Huolto','Maalaamon ruiskukaapin suodatinhuolto','Kaappi pois käytöstä huollon ajan.'],
+    [n1,'aamupäivä','t','Toimitus','Koivuvaneria 12 mm saapuu','10 levyä levyvarastoon A.'],
+    [n2,'','k','Kiertotalous','Ylijäämälevyjä vapaasti otettavissa','Levyvarasto A, merkitty vihreällä.'],
+    [nm,'8.00–9.30','h','Huolto','Laserleikkurin optiikkahuolto','Laser käytössä taas klo 13.15.'],
+    [d,'','s','Turvallisuus','Epoksin käsittelyohje päivitetty','Lue uusi versio ennen käyttöä.']
+  ];
+  news=L.news.concat(news);
+  news.sort(function(a,b){return a[0]-b[0]});
+  h+='<section class="pan news"><div class="ph"><h2>Tiedotteet</h2></div>';
+  news.slice(0,3).forEach(function(n){
+    h+='<div class="n"><div class="when">'+dayLabel(n[0],d)+'<small>'+n[0].getDate()+'.'+(n[0].getMonth()+1)+'.'+(n[1]?'<br>'+n[1]:'')+'</small></div><div class="what"><span class="tagx '+n[2]+'">'+n[3]+'</span><b>'+esc(n[4])+'</b>'+esc(n[5])+'</div></div>';
+  });
+  h+='</section></div></div>';
+
+  /* alapalkki */
+  h+='<footer class="foot"><span class="k">Turvallisuus</span><span class="msg" id="msg">'+esc(SAFETY[msgIx%SAFETY.length])+'</span><span class="em">Hätätilanne 112</span></footer>';
+  h+='<div class="demo">'+(L.db?'<span class="livedot"></span>Synkronoitu A’laboran kanssa · ':'Demodata · ')+'konseptidemo, ei Aalto-yliopiston virallinen palvelu</div>';
+  var em=ls('alabora_em_v1');
+  if(em&&em.active)h=emView(em,d);
+  document.getElementById('stage').innerHTML=h;
+  document.getElementById('stage').className=(em&&em.active)?'emmode':'';
+}
+function fit(){var s=Math.min(window.innerWidth/1920,window.innerHeight/1080);document.getElementById('stage').style.transform='translate(-50%,-50%) scale('+s+')'}
+window.addEventListener('resize',fit);
+render();fit();
+setInterval(render,20000);
+window.addEventListener('storage',function(e){if(!e.key||e.key.indexOf('alabora_')===0)render()});
+try{var bc=new BroadcastChannel('alabora');bc.onmessage=function(){render()}}catch(e){}
+setInterval(function(){var em=ls('alabora_em_v1');if(em&&em.active)render()},1000);
+setInterval(function(){msgIx++;var e=document.getElementById('msg');if(!e)return;e.style.opacity=0;setTimeout(function(){e.textContent=SAFETY[msgIx%SAFETY.length];e.style.opacity=1},500)},12000);
+})();
+</script>
+</body>
+</html>
